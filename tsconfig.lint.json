@@ -1,0 +1,9 @@
+{
+  // Type-checks everything under src/, not just what index.ts imports. The
+  // build config stays narrow so lib/ only ever contains the published graph.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["src"]
+}

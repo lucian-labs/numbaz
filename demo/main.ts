@@ -44,7 +44,7 @@ function installSection() {
   const install = document.createElement('wl-install')
   install.setAttribute('pkg', '@dank-inc/numbaz')
   const code = document.createElement('wl-code')
-  code.textContent = `import { Maff, Rando } from '@dank-inc/numbaz'
+  code.textContent = `import { Maff, Rando, seed } from '@dank-inc/numbaz'
 
 // Maff — deterministic signal maths over a 0..1 parameter
 Maff.sin(u, freq, scale, offset)
@@ -54,7 +54,10 @@ Maff.quantize(value, step)
 // Rando — the random helpers
 Rando.range(min, max)
 Rando.int(min, max)
-Rando.pick(array)`
+Rando.pick(array)
+
+// seed — the same term replays the same sequence
+const rand = seed('cactus')`
   s.append(install, code)
 }
 
@@ -182,8 +185,8 @@ function randoSection() {
     h(
       'p',
       'wl-muted',
-      'Draw a batch and bin it. Rando.normal sums two calls to r() for a rough ' +
-        'triangular distribution; the rest are flat.'
+      'Draw a batch and bin it. Everything here is flat except Rando.gaussian, ' +
+        'which is a real Box-Muller bell — Rando.normal is not one, despite the name.'
     )
   )
 
@@ -197,7 +200,7 @@ function randoSection() {
   controls.style.marginTop = '0.75rem'
 
   const which = document.createElement('wl-segmented')
-  which.setAttribute('options', 'range,int,normal,num')
+  which.setAttribute('options', 'range,int,normal,gaussian,num')
   which.setAttribute('value', 'range')
 
   const draw = document.createElement('button')
@@ -222,6 +225,8 @@ function randoSection() {
     for (let i = 0; i < N; i++) {
       let v: number
       if (kind === 'int') v = Rando.int(0, BINS) / BINS
+      // Centred so the bell lands inside the 0..1 window the bins cover.
+      else if (kind === 'gaussian') v = Rando.gaussian(0.5, 0.15)
       else if (kind === 'normal') v = Rando.normal(1, 0)
       else if (kind === 'num') v = Rando.num(1, 0)
       else v = Rando.range(0, 1)
@@ -268,18 +273,21 @@ function apiSection() {
   ;(api as HTMLElement & { rows: unknown }).rows = [
     { name: 'Maff.sin', kind: 'function', signature: '(u, freq=1, scale=1, offset=0) => number', about: 'Sine over a 0..1 parameter, pre-scaled and offset.' },
     { name: 'Maff.cos', kind: 'function', signature: '(u, freq=1, scale=1, offset=0) => number', about: 'Cosine counterpart to Maff.sin.' },
-    { name: 'Maff.lerp', kind: 'function', signature: '(u, max, margin=0, min=0) => number', about: 'Linear interpolation with an optional inset margin.' },
+    { name: 'Maff.lerp', kind: 'function', signature: '(u, max, margin=0, min=0) => number', about: 'Interpolates min..max, inset at both ends by margin. Note the argument order.' },
     { name: 'Maff.map', kind: 'function', signature: '(u, min, max) => number', about: 'Maps a 0..1 parameter into a min..max range.' },
-    { name: 'Maff.quantize', kind: 'function', signature: '(input, step) => number', about: 'Snaps a value onto a step grid.' },
-    { name: 'Maff.r', kind: 'function', signature: '(scale=1, offset=0) => number', about: 'Scaled random, 0..scale.' },
-    { name: 'Maff.n', kind: 'function', signature: '(scale=1, offset=0) => number', about: 'Bipolar random centred on zero.' },
+    { name: 'Maff.quantize', kind: 'function', signature: '(input, step) => number', about: 'Snaps a value onto a step grid. NaN when step is 0.' },
+    { name: 'Maff.r', kind: 'function', signature: '(scale=1, offset=0) => number', about: 'Deprecated — duplicate of Rando.num.' },
+    { name: 'Maff.n', kind: 'function', signature: '(scale=1, offset=0) => number', about: 'Deprecated — alias of Maff.r.' },
     { name: 'Rando.r', kind: 'function', signature: '() => number', about: 'Math.random, wrapped so it can be swapped.' },
     { name: 'Rando.num', kind: 'function', signature: '(scale=1, offset=0) => number', about: 'Random scaled and offset.' },
-    { name: 'Rando.range', kind: 'function', signature: '(min=0, max=1) => number', about: 'Uniform float in a range.' },
-    { name: 'Rando.int', kind: 'function', signature: '(min=0, max=42) => number', about: 'Floored range — see the review note on the upper bound.' },
-    { name: 'Rando.normal', kind: 'function', signature: '(scale=1, offset=0) => number', about: 'Two summed draws — roughly triangular.' },
+    { name: 'Rando.range', kind: 'function', signature: '(min=0, max=1) => number', about: 'Uniform float in [min, max).' },
+    { name: 'Rando.int', kind: 'function', signature: '(min=0, max=42) => number', about: 'Floored range — max is exclusive.' },
+    { name: 'Rando.bipolar', kind: 'function', signature: '(scale=1, offset=0) => number', about: 'Flat draw over [offset-scale, offset+scale).' },
+    { name: 'Rando.normal', kind: 'function', signature: '(scale=1, offset=0) => number', about: 'Deprecated alias of bipolar — flat, not Gaussian.' },
+    { name: 'Rando.gaussian', kind: 'function', signature: '(mean=0, sd=1) => number', about: 'Box-Muller normal distribution.' },
     { name: 'Rando.bool', kind: 'function', signature: '() => boolean', about: 'Coin flip.' },
-    { name: 'Rando.item', kind: 'function', signature: '<T>(arr: T[]) => T', about: 'Random element. Alias of pick.' },
-    { name: 'Rando.pick', kind: 'function', signature: '<T>(arr: T[]) => T', about: 'Random element.' },
+    { name: 'Rando.item', kind: 'function', signature: '<T>(arr: T[]) => T', about: 'Alias of pick.' },
+    { name: 'Rando.pick', kind: 'function', signature: '<T>(arr: T[]) => T', about: 'Uniform random element. Throws on an empty array.' },
+    { name: 'seed', kind: 'function', signature: '(term: string | number) => () => number', about: 'Deterministic 0..1 generator — same term, same sequence.' },
   ]
 }

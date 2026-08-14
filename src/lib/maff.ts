@@ -21,16 +21,17 @@ export type Lerpr = (
 ) => number
 
 export const lerp: Lerpr = (u, max, margin = 0, min = 0) =>
-  u * (max - margin * 2) - min + margin
+  min + margin + u * (max - margin - (min + margin))
 
 export const map = (u: number, min: number, max: number) =>
   u * (max - min) + min
 
+/** @deprecated Randomness lives in `Rando` — this is `Rando.num`. */
 export const r: Scaler = (scale = 1, offset = 0) =>
   Math.random() * scale + offset
 
-export const n: Scaler = (scale = 1, offset = 0) =>
-  Math.random() * scale + offset
+/** @deprecated Alias of `Maff.r`, itself a duplicate of `Rando.num`. */
+export const n: Scaler = r
 
 export const quantize = (input: number, step: number) => {
   return Math.round(input / step) * step
