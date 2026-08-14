@@ -6,7 +6,10 @@
 
 import { Maff, Rando } from '@dank-inc/numbaz'
 
-declare const waveloop: { ready: (...tags: string[]) => Promise<unknown> }
+declare const waveloop: {
+  ready: (...tags: string[]) => Promise<unknown>
+  whenSized: (el: Element, fn: (rect: DOMRect) => void) => () => void
+}
 
 const app = document.getElementById('app') as HTMLElement
 
@@ -168,7 +171,7 @@ function quantizeSection() {
   }
   input.addEventListener('wl-input', update)
   stepF.addEventListener('wl-input', update)
-  requestAnimationFrame(update)
+  update()
 }
 
 /* ── Rando distributions ────────────────────────────────────────────────── */
@@ -252,7 +255,8 @@ function randoSection() {
 
   draw.addEventListener('click', run)
   which.addEventListener('wl-input', run)
-  requestAnimationFrame(run)
+  // Boot off the real box, not one rAF — see waveloop.whenSized.
+  waveloop.whenSized(hud, run)
 }
 
 /* ── API table ──────────────────────────────────────────────────────────── */
